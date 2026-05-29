@@ -1,61 +1,81 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class SliderController : MonoBehaviour
 {
     public static SliderController Instance { get; private set; }
 
-    [SerializeField] private Transform targetParent; // Родитель, чьих потомков считаем
-    [SerializeField] private Slider slider;          // Сам слайдер
+    [SerializeField] private Slider slider;
+    [SerializeField] private Transform[] dummyParents;
 
-    private int totalChildren;
+    [SerializeField] private TextMeshProUGUI remainingText;   // "X РѕСЃС‚Р°Р»РѕСЃСЊ РёР· Y"
+    [SerializeField] private TextMeshProUGUI percentText;     // "X%"
+
+    private int totalObjects;
 
     private void Awake()
     {
-        // Реализуем статичный instance (синглтон)
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
     }
 
     private void Start()
     {
-        if (targetParent == null)
-        {
-            Debug.LogError("SliderController: Не назначен Target Parent!");
-            return;
-        }
-
         if (slider == null)
             slider = GetComponent<Slider>();
 
-        totalChildren = targetParent.childCount;
+        if (dummyParents == null || dummyParents.Length == 0)
+        {
+            Debug.LogError("SliderController: РќРµ РЅР°Р·РЅР°С‡РµРЅС‹ РїСѓСЃС‚С‹С€РєРё (dummyParents)!");
+            return;
+        }
+
+        totalObjects = 0;
+        foreach (Transform dummy in dummyParents)
+        {
+            if (dummy != null)
+                totalObjects += dummy.childCount;
+        }
+
         UpdateSliderValue();
     }
 
-    /// <summary>
-    /// Вызывается при уничтожении любого дочернего объекта.
-    /// </summary>
     public void UpdateSliderValue()
     {
-        if (slider == null || targetParent == null)
+        if (slider == null || dummyParents == null)
             return;
 
-        // Текущее количество живых детей
-        int currentChildren = targetParent.childCount;
+        int currentObjects = 0;
+        foreach (Transform dummy in dummyParents)
+        {
+            if (dummy != null)
+                currentObjects += dummy.childCount;
+        }
 
-        // Процентное соотношение (от 0 до 1)
-        float ratio = (totalChildren > 0) ? (float)currentChildren / totalChildren : 0f;
-        slider.value = ratio; // Слайдер плавно уходит от 1 к 0
+        // РЎР»Р°Р№РґРµСЂ: 1 = РІСЃС‘ Р¶РёРІРѕ, 0 = РІСЃС‘ СѓРЅРёС‡С‚РѕР¶РµРЅРѕ
+        float ratio = (totalObjects > 0) ? (float)currentObjects / totalObjects : 0f;
+        slider.value = ratio;
+
+        // РћР±РЅРѕРІР»РµРЅРёРµ С‚РµРєСЃС‚Р° (С‡РёСЃР»Р° СѓР±С‹РІР°СЋС‚ РѕС‚ РјР°РєСЃРёРјСѓРјР° Рє 0)
+        if (remainingText != null || percentText != null)
+        {
+            float percentRemaining = ratio * 100f;   // 100% в†’ 0%
+
+            if (remainingText != null)
+                remainingText.text = $"{currentObjects}/{totalObjects}";
+
+            if (percentText != null)
+                percentText.text = $"{percentRemaining:F0}%";
+        }
     }
 
     private void OnDestroy()
     {
-        // Очищаем instance, чтобы не осталось висячих ссылок
         if (Instance == this)
             Instance = null;
     }

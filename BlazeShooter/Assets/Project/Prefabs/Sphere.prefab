@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 4727802863204039500}
   - component: {fileID: 2599630716227793355}
   - component: {fileID: 5654184316315284404}
-  - component: {fileID: 960984329513443247}
   - component: {fileID: 6200048552060880127}
+  - component: {fileID: 5133934722066108812}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
@@ -225,23 +225,6 @@ TrailRenderer:
   m_Autodestruct: 1
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
---- !u!114 &960984329513443247
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6832032602689686514}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eeacb740ea8bb1e4aab2526247a5d17c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Bullet
-  speed: 2
-  lifetime: 3
-  impactEffect: {fileID: 0}
-  bulletColor: {r: 1, g: 1, b: 1, a: 1}
-  colorTolerance: 0.1
 --- !u!54 &6200048552060880127
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -269,3 +252,17 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &5133934722066108812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6832032602689686514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 724abe7b62bf3d243bb9a79e73556c43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Ball
+  assignedColor: 0
+  speed: 2
