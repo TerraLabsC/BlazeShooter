@@ -15,7 +15,7 @@ public class PlayerShoot : MonoBehaviour
 
     [Header("Ammo Settings")]
     [SerializeField] private int maxAmmo = 40;
-    private int currentAmmo;
+    [HideInInspector] public int currentAmmo;
 
     [Header("UI & Visuals")]
     [SerializeField] private TextMeshProUGUI ammoText;
@@ -42,6 +42,8 @@ public class PlayerShoot : MonoBehaviour
     [SerializeField] private float recoilElasticity = 0.3f;    // упругость (0..1)
     [SerializeField] private float recoilAngle = 2f;           // угол подброса ствола вверх (градусы)
 
+    private bool ammoInitializedExternally = false;
+
     public bool IsActuve()   // сохранено как в оригинале, можно заменить на IsActive
     {
         return IsActive;
@@ -49,7 +51,11 @@ public class PlayerShoot : MonoBehaviour
 
     private void Start()
     {
-        currentAmmo = maxAmmo;
+        if (!ammoInitializedExternally)
+        {
+            currentAmmo = maxAmmo;
+        }
+
         UpdateAmmoUI();
         if (objectToScale == null)
             objectToScale = transform;
@@ -157,11 +163,32 @@ public class PlayerShoot : MonoBehaviour
             ammoText.text = $"{currentAmmo}";
     }
 
-    private void EmptyMagazine()
+    public void EmptyMagazine()
     {
         isMagazineEmpty = true;
         objectToScale.DOScale(Vector3.zero, scaleDownDuration)
                      .SetEase(Ease.InBack)
-                     .OnComplete(() => Debug.Log("Магазин пуст, объект скрыт"));
+                     .OnComplete(() => Destroy(objectToScale.gameObject));
+    }
+
+    public void PlaySpawnAnimation()
+    {
+        // objectToScale по умолчанию ссылается на transform игрока
+        if (objectToScale == null)
+            objectToScale = transform;
+
+        // Мгновенно делаем объект невидимым (масштаб 0)
+        objectToScale.localScale = Vector3.zero;
+
+        // Анимируем до нормального размера с упругим эффектом (OutBack)
+        objectToScale.DOScale(Vector3.one, scaleDownDuration)
+                     .SetEase(Ease.OutBack);
+    }
+
+    public void SetInitialAmmo(int ammo)
+    {
+        currentAmmo = Mathf.Clamp(ammo, 0, maxAmmo);
+        ammoInitializedExternally = true;   // запрещаем Start() менять патроны
+        UpdateAmmoUI();
     }
 }

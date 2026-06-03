@@ -29,6 +29,8 @@ public class CarRowManager : MonoBehaviour
     [Tooltip("Список машин полосы: [0] – головная, [1] – следующая и т.д.")]
     public List<Transform> cars = new List<Transform>();
 
+    private bool isMovementLocked = false;
+
     // Вычисляем вектор направления для текущего ряда
     private Vector3 GetAlignmentDirection()
     {
@@ -44,8 +46,15 @@ public class CarRowManager : MonoBehaviour
         };
     }
 
+    public bool IsFirstInQueue(GameObject obj)
+    {
+        return cars.Count > 0 && cars[0] != null && cars[0].gameObject == obj;
+    }
+
     private void Update()
     {
+        if (isMovementLocked) return;
+
         if (laneStartPoint == null)
         {
             Debug.LogError("Не назначена точка старта полосы!");
@@ -105,9 +114,19 @@ public class CarRowManager : MonoBehaviour
         }
     }
 
-    public void RemoveFirstCar()
+    public void RemoveFirstFromList()
     {
-        if (cars.Count > 0 && cars[0] != null)
-            Destroy(cars[0].gameObject);
+        if (cars.Count > 0)
+            cars.RemoveAt(0);
+    }
+
+    public void LockMovement()
+    {
+        isMovementLocked = true;
+    }
+
+    public void UnlockMovement()
+    {
+        isMovementLocked = false;
     }
 }
