@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -93,3 +94,4 @@ public class ScalePresetGlobalWindow : EditorWindow
         Debug.Log($"Текущий масштаб {allAppliers.Length} объектов сохранён в Preset2.");
     }
 }
+#endif

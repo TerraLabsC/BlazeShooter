@@ -1,61 +1,191 @@
-using DG.Tweening;
+п»їusing DG.Tweening;
 using UnityEngine;
+using System.Collections;
 
 public class WorldSpawnButton : MonoBehaviour
 {
-    [Tooltip("Имя префаба из списка BaseObjects.playerPrefabs")]
+    [Tooltip("РРјСЏ РїСЂРµС„Р°Р±Р° РёР· СЃРїРёСЃРєР° BaseObjects.playerPrefabs")]
     public string prefabName;
 
-    [Tooltip("Ссылка на ряд, к которому принадлежит этот объект")]
+    [Tooltip("РЎСЃС‹Р»РєР° РЅР° СЂСЏРґ, Рє РєРѕС‚РѕСЂРѕРјСѓ РїСЂРёРЅР°РґР»РµР¶РёС‚ СЌС‚РѕС‚ РѕР±СЉРµРєС‚")]
     public CarRowManager rowManager;
 
     private Transform objectToScale;
     [SerializeField] private float scaleDownDuration = 0.5f;
-    private bool isActivated = false;   // защита от повторных кликов
+    private bool isActivated = false;
+
+    [Header("UI-РёРЅРґРёРєР°С‚РѕСЂС‹")]
+    [SerializeField] private GameObject cannotInteractImage;
+    [SerializeField] private GameObject canInteractImage;
+
+    [Header("РђРЅРёРјР°С†РёРё РёРєРѕРЅРѕРє")]
+    [SerializeField] private float iconFadeDuration = 0.5f;     // РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РїРѕСЏРІР»РµРЅРёСЏ/РёСЃС‡РµР·РЅРѕРІРµРЅРёСЏ
+    [SerializeField] private float cannotShowDuration = 1f;     // СЃРєРѕР»СЊРєРѕ РІРёРґРЅР° РёРєРѕРЅРєР° В«РЅРµР»СЊР·СЏВ»
+    [SerializeField] private float swayAngle = 8f;              // Р°РјРїР»РёС‚СѓРґР° РїРѕРєР°С‡РёРІР°РЅРёСЏ
+    [SerializeField] private float swayDuration = 1.2f;         // С†РёРєР» РїРѕРєР°С‡РёРІР°РЅРёСЏ
+
+    private float nextIconCheckTime;
+    private bool isIconShowing = false;
+
+    private Tween iconScaleTween;
+    private Tween iconSwayTween;
+    private Sequence cannotSequence;   // DOTween Sequence РґР»СЏ Р°РЅРёРјР°С†РёРё В«РЅРµР»СЊР·СЏВ»
 
     private void Start()
     {
         objectToScale = transform;
-
         rowManager = GetComponentInParent<CarRowManager>();
+
+        // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РёРєРѕРЅРѕРє (СЃРєСЂС‹С‚С‹, scale=0)
+        if (cannotInteractImage != null)
+        {
+            cannotInteractImage.SetActive(false);
+            cannotInteractImage.transform.localScale = Vector3.zero;
+        }
+        if (canInteractImage != null)
+        {
+            canInteractImage.SetActive(false);
+            canInteractImage.transform.localScale = Vector3.zero;
+        }
+
+        nextIconCheckTime = Time.time + 15f;
+    }
+
+    private void Update()
+    {
+        bool isAvailable = !isActivated && (rowManager == null || rowManager.IsFirstInQueue(gameObject));
+
+        if (Time.time >= nextIconCheckTime)
+        {
+            if (isAvailable)
+            {
+                bool shouldShow = Random.value <= 0.05f;
+                if (shouldShow && !isIconShowing)
+                    ShowCanInteractIcon();
+                else if (!shouldShow && isIconShowing)
+                    HideCanInteractIcon();
+            }
+            else
+            {
+                if (isIconShowing)
+                    HideCanInteractIcon();
+            }
+            nextIconCheckTime = Time.time + 15f;
+        }
+        else
+        {
+            if (!isAvailable && isIconShowing)
+                HideCanInteractIcon();
+        }
+    }
+
+    private void ShowCanInteractIcon()
+    {
+        if (canInteractImage == null) return;
+
+        KillIconTweens();
+
+        canInteractImage.SetActive(true);
+        canInteractImage.transform.localScale = Vector3.zero;
+        canInteractImage.transform.localRotation = Quaternion.identity;
+
+        iconScaleTween = canInteractImage.transform.DOScale(1f, iconFadeDuration)
+            .SetEase(Ease.OutBack)
+            .OnComplete(() =>
+            {
+                iconSwayTween = canInteractImage.transform
+                    .DOLocalRotate(new Vector3(0f, 0f, swayAngle), swayDuration / 2f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo);
+            });
+
+        isIconShowing = true;
+    }
+
+    private void HideCanInteractIcon()
+    {
+        if (canInteractImage == null || !isIconShowing) return;
+
+        KillIconTweens();
+
+        iconScaleTween = canInteractImage.transform.DOScale(0f, iconFadeDuration)
+            .SetEase(Ease.InBack)
+            .OnComplete(() =>
+            {
+                canInteractImage.SetActive(false);
+                canInteractImage.transform.localRotation = Quaternion.identity;
+            });
+
+        isIconShowing = false;
+    }
+
+    private void KillIconTweens()
+    {
+        if (iconScaleTween != null && iconScaleTween.IsActive())
+            iconScaleTween.Kill();
+        if (iconSwayTween != null && iconSwayTween.IsActive())
+            iconSwayTween.Kill();
     }
 
     private void OnMouseDown()
     {
-        // Если объект уже активирован или не первый – выход
         if (isActivated) return;
 
         if (rowManager != null && !rowManager.IsFirstInQueue(gameObject))
         {
-            Debug.Log("Этот объект нельзя нажать, он не первый в очереди.");
+            ShowCannotInteractImage();
+            Debug.Log("Р­С‚РѕС‚ РѕР±СЉРµРєС‚ РЅРµР»СЊР·СЏ РЅР°Р¶Р°С‚СЊ, РѕРЅ РЅРµ РїРµСЂРІС‹Р№ РІ РѕС‡РµСЂРµРґРё.");
             return;
         }
 
         if (BaseObjects.Instance == null)
         {
-            Debug.LogError("BaseObjects.Instance не найден на сцене!");
+            Debug.LogError("BaseObjects.Instance РЅРµ РЅР°Р№РґРµРЅ РЅР° СЃС†РµРЅРµ!");
             return;
         }
 
         bool found = BaseObjects.Instance.playerPrefabs.Exists(p => p != null && p.name == prefabName);
         if (!found)
         {
-            Debug.LogWarning($"Префаб с именем '{prefabName}' отсутствует в BaseObjects.playerPrefabs!");
+            Debug.LogWarning($"РџСЂРµС„Р°Р± СЃ РёРјРµРЅРµРј '{prefabName}' РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ BaseObjects.playerPrefabs!");
             return;
         }
 
-        // Блокируем повторные нажатия
         isActivated = true;
 
-        // Останавливаем движение всех машин в ряду
         if (rowManager != null)
             rowManager.LockMovement();
 
-        // Спавним игрока (метод SpawnPlayerClickObject должен существовать в BaseObjects)
-        BaseObjects.Instance.SpawnPlayerClickObject(prefabName);
+        if (isIconShowing)
+            HideCanInteractIcon();
 
-        // Запускаем анимацию исчезновения
+        BaseObjects.Instance.SpawnPlayerClickObject(prefabName);
         DestroyAnimation();
+    }
+
+    /// <summary>
+    /// РџР»Р°РІРЅРѕРµ РїРѕСЏРІР»РµРЅРёРµ, РїР°СѓР·Р° Рё РёСЃС‡РµР·РЅРѕРІРµРЅРёРµ РёРєРѕРЅРєРё В«РЅРµР»СЊР·СЏВ».
+    /// </summary>
+    private void ShowCannotInteractImage()
+    {
+        if (cannotInteractImage == null) return;
+
+        // РџСЂРµСЂС‹РІР°РµРј РїСЂРµРґС‹РґСѓС‰СѓСЋ Р°РЅРёРјР°С†РёСЋ, РµСЃР»Рё Р±С‹Р»Р°
+        if (cannotSequence != null && cannotSequence.IsActive())
+            cannotSequence.Kill();
+
+        cannotInteractImage.SetActive(true);
+        cannotInteractImage.transform.localScale = Vector3.zero;
+
+        cannotSequence = DOTween.Sequence();
+        cannotSequence.Append(cannotInteractImage.transform.DOScale(1f, iconFadeDuration).SetEase(Ease.OutBack));
+        cannotSequence.AppendInterval(cannotShowDuration);
+        cannotSequence.Append(cannotInteractImage.transform.DOScale(0f, iconFadeDuration).SetEase(Ease.InBack));
+        cannotSequence.OnComplete(() =>
+        {
+            cannotInteractImage.SetActive(false);
+            cannotSequence = null;
+        });
     }
 
     public void DestroyAnimation()
@@ -64,16 +194,20 @@ public class WorldSpawnButton : MonoBehaviour
                      .SetEase(Ease.InBack)
                      .OnComplete(() =>
                      {
-                         // Убираем первый объект из списка (теперь вторая машина станет первой)
                          if (rowManager != null)
                              rowManager.RemoveFirstFromList();
 
-                         // Возобновляем движение машин
                          if (rowManager != null)
                              rowManager.UnlockMovement();
 
-                         // Уничтожаем объект
                          Destroy(objectToScale.gameObject);
                      });
+    }
+
+    private void OnDestroy()
+    {
+        KillIconTweens();
+        if (cannotSequence != null && cannotSequence.IsActive())
+            cannotSequence.Kill();
     }
 }
